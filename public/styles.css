@@ -2135,6 +2135,16 @@ body.nav-open .nav__mobile-inner {
     .chat-panel__header {
         padding: var(--space-sm) var(--space-md);
     }
+
+    .chat-attention {
+        display: block;
+        bottom: 74px;
+        /* 10px bottom + 60px button space */
+        right: 0;
+        font-size: 0.70rem;
+        padding: 8px 12px;
+        border-radius: 12px 12px 0 12px;
+    }
 }
 
 @media (max-width: 480px) {
