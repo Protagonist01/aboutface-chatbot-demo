@@ -1,0 +1,26 @@
+{
+  "name": "about-face-chatbot",
+  "version": "1.0.0",
+  "description": "AI RAG chatbot for about-face cosmetics",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node seed-knowledge.js"
+  },
+  "keywords": [
+    "chatbot",
+    "rag",
+    "cosmetics",
+    "about-face"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pinecone-database/pinecone": "^7.0.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.22.1",
+    "openai": "^6.22.0"
+  }
+}
