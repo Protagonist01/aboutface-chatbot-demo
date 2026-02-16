@@ -2180,6 +2180,17 @@ body.nav-open .nav__mobile-inner {
         margin-top: 0;
         line-height: 1;
     }
+
+    .chat-panel__suggestions {
+        padding: 0 var(--space-md) var(--space-xs);
+        gap: 4px;
+    }
+
+    .suggestion-chip {
+        padding: 4px 10px;
+        font-size: 10px;
+        border-radius: 12px;
+    }
 }
 
 @media (max-width: 480px) {
