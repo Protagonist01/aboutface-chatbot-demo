@@ -2119,7 +2119,7 @@ body.nav-open .nav__mobile-inner {
         left: 0;
         margin: 0 auto;
         /* Center horizontally */
-        width: 75vw;
+        width: 90vw;
         /* Reduce width */
         height: 70dvh;
         max-height: none;
@@ -2138,7 +2138,7 @@ body.nav-open .nav__mobile-inner {
         transform: translateY(0);
         opacity: 1;
         visibility: visible;
-        width: 75vw;
+        width: 90vw;
         height: 70dvh;
         border-radius: 16px 16px 0 0;
     }
