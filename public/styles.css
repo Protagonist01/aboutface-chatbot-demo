@@ -2110,7 +2110,7 @@ body.nav-open .nav__mobile-inner {
         right: 0;
         left: 0;
         width: 100vw;
-        height: 85dvh;
+        height: 70dvh;
         max-height: none;
         border-radius: 16px 16px 0 0;
         border: none;
@@ -2128,7 +2128,7 @@ body.nav-open .nav__mobile-inner {
         opacity: 1;
         visibility: visible;
         width: 100vw;
-        height: 85dvh;
+        height: 70dvh;
         border-radius: 16px 16px 0 0;
     }
 
@@ -2151,5 +2151,11 @@ body.nav-open .nav__mobile-inner {
     .chat-toggle__icon {
         width: 20px;
         height: 20px;
+    }
+
+    .nav__mobile {
+        top: 78px;
+        /* 28px marquee + 50px nav */
+        max-height: calc(100vh - 78px);
     }
 }
