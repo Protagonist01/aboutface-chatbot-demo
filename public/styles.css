@@ -2191,6 +2191,12 @@ body.nav-open .nav__mobile-inner {
         font-size: 10px;
         border-radius: 12px;
     }
+
+    /* Fix input field taking up too much space on mobile */
+    .chat-panel__input-field {
+        min-width: 0;
+        width: auto;
+    }
 }
 
 @media (max-width: 480px) {
