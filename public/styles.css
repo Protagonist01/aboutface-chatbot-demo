@@ -25,6 +25,8 @@
     --nav-height: 60px;
     --chat-width: 400px;
     --chat-height: 600px;
+    --header-height: 96px;
+    /* 36px marquee + 60px nav */
     --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 16px;
@@ -582,17 +584,18 @@ body.nav-open .nav__hamburger span:nth-child(3) {
 
 /* MOBILE MENU OVERLAY */
 .nav__mobile {
-    position: fixed;
-    top: 96px;
-    /* 36px marquee + 60px nav */
+    position: absolute;
+    top: 100%;
+    margin-top: -1px;
+    /* Overlap behind border */
     left: 0;
     width: 100%;
     height: auto;
-    max-height: calc(100vh - 96px);
+    max-height: calc(100vh - var(--header-height) + 1px);
     overflow-y: auto;
     padding: var(--space-md) 0;
     background: var(--bg-primary);
-    z-index: 90;
+    z-index: -1;
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -2163,9 +2166,8 @@ body.nav-open .nav__mobile-inner {
         height: 20px;
     }
 
-    .nav__mobile {
-        top: 78px;
+    :root {
+        --header-height: 78px;
         /* 28px marquee + 50px nav */
-        max-height: calc(100vh - 78px);
     }
 }

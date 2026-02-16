@@ -319,4 +319,33 @@
     }
 
     initSlideshow();
+
+    // ── Chat Attention Rotation ──────────────────────────────
+    const ATTENTION_MESSAGES = [
+        'unlock your perfect look ✦',
+        'free shipping over $45 ✈️',
+        'find your shade match 🎨',
+        'ask the muse anything ✨',
+        'vegan & cruelty-free 🐰'
+    ];
+
+    function initAttentionRotation() {
+        if (!chatAttention) return;
+
+        const textEl = chatAttention.querySelector('.chat-attention__text');
+        if (!textEl) return;
+
+        let index = 0;
+
+        // Sync with CSS animation (8s total, hidden from ~3.6s to 8s)
+        // We update text at 4s (mid-hidden state)
+        setTimeout(() => {
+            setInterval(() => {
+                index = (index + 1) % ATTENTION_MESSAGES.length;
+                textEl.textContent = ATTENTION_MESSAGES[index];
+            }, 8000);
+        }, 4000);
+    }
+
+    initAttentionRotation();
 })();
