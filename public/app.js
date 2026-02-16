@@ -272,6 +272,27 @@
 
     themeToggle.addEventListener('click', toggleTheme);
 
+    // ── Mobile Menu Toggle ──────────────────────────────────────
+    const navToggle = document.getElementById('navToggle');
+    const navMobile = document.getElementById('navMobile');
+
+    function toggleNav() {
+        document.body.classList.toggle('nav-open');
+    }
+
+    if (navToggle) {
+        navToggle.addEventListener('click', toggleNav);
+    }
+
+    // Close menu when a link is clicked
+    if (navMobile) {
+        navMobile.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') {
+                document.body.classList.remove('nav-open');
+            }
+        });
+    }
+
     // ── Mystery Badge ───────────────────────────────────────────
     const mysteryBadge = document.getElementById('mysteryBadge');
     if (mysteryBadge) {
