@@ -2112,7 +2112,10 @@ body.nav-open .nav__mobile-inner {
         bottom: 0;
         right: 0;
         left: 0;
-        width: 100vw;
+        margin: 0 auto;
+        /* Center horizontally */
+        width: 94vw;
+        /* Reduce width */
         height: 70dvh;
         max-height: none;
         border-radius: 16px 16px 0 0;
@@ -2130,7 +2133,7 @@ body.nav-open .nav__mobile-inner {
         transform: translateY(0);
         opacity: 1;
         visibility: visible;
-        width: 100vw;
+        width: 94vw;
         height: 70dvh;
         border-radius: 16px 16px 0 0;
     }
@@ -2169,5 +2172,29 @@ body.nav-open .nav__mobile-inner {
     :root {
         --header-height: 78px;
         /* 28px marquee + 50px nav */
+    }
+
+    .hero__founder-by,
+    .hero__founder-name,
+    .hero__founder-aka,
+    .hero__founder-real {
+        margin-bottom: 0px;
+        line-height: 0.85;
+    }
+
+    .hero__founder-name {
+        line-height: 0.75;
+        margin-bottom: -4px;
+        letter-spacing: -0.02em;
+    }
+
+    .hero__founder-real {
+        line-height: 0.85;
+        margin-bottom: -4px;
+    }
+
+    .hero__founder-handle {
+        margin-top: 0;
+        line-height: 1;
     }
 }
