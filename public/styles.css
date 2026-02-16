@@ -826,8 +826,8 @@ body.nav-open .nav__mobile-inner {
     }
 
     .btn--treat {
-        font-size: 1rem;
-        padding: 16px 36px;
+        font-size: 0.85rem;
+        padding: 12px 28px;
     }
 
     .hero__bg-texture {
@@ -860,12 +860,14 @@ body.nav-open .nav__mobile-inner {
 
     .chat-panel {
         position: fixed;
+        top: 0;
         bottom: 0;
         right: 0;
         left: 0;
         width: 100%;
-        height: 100%;
-        max-height: 100vh;
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
         border-radius: 0;
         border: none;
     }
@@ -970,8 +972,8 @@ body.nav-open .nav__mobile-inner {
     }
 
     .btn--treat {
-        font-size: 0.85rem;
-        padding: 14px 28px;
+        font-size: 0.8rem;
+        padding: 10px 24px;
     }
 
     .hero__mystery {
