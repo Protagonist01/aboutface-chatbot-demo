@@ -46,7 +46,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // ── Start Server ──────────────────────────────────────────
-app.listen(PORT, () => {
-    console.log(`\n  ✦ about-face chatbot running at http://localhost:${PORT}`);
-    console.log(`  ✦ API endpoint: http://localhost:${PORT}/api/chat\n`);
-});
+// Only listen if run directly (local dev), otherwise export for Vercel
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`\n  ✦ about-face chatbot running at http://localhost:${PORT}`);
+        console.log(`  ✦ API endpoint: http://localhost:${PORT}/api/chat\n`);
+    });
+}
+
+export default app;
