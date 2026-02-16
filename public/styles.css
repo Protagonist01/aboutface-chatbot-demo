@@ -2106,6 +2106,11 @@ body.nav-open .nav__mobile-inner {
         bottom: 10px;
     }
 
+    /* Hide chat toggle on mobile when open to save space */
+    .chat-widget.is-open .chat-toggle {
+        display: none;
+    }
+
     .chat-panel {
         position: fixed;
         top: auto;
@@ -2114,7 +2119,7 @@ body.nav-open .nav__mobile-inner {
         left: 0;
         margin: 0 auto;
         /* Center horizontally */
-        width: 94vw;
+        width: 75vw;
         /* Reduce width */
         height: 70dvh;
         max-height: none;
@@ -2133,7 +2138,7 @@ body.nav-open .nav__mobile-inner {
         transform: translateY(0);
         opacity: 1;
         visibility: visible;
-        width: 94vw;
+        width: 75vw;
         height: 70dvh;
         border-radius: 16px 16px 0 0;
     }
@@ -2150,28 +2155,6 @@ body.nav-open .nav__mobile-inner {
         font-size: 0.70rem;
         padding: 8px 12px;
         border-radius: 12px 12px 0 12px;
-    }
-}
-
-@media (max-width: 480px) {
-    .btn--treat {
-        font-size: 0.8rem;
-        padding: 10px 24px;
-    }
-
-    .chat-toggle {
-        width: 46px;
-        height: 46px;
-    }
-
-    .chat-toggle__icon {
-        width: 20px;
-        height: 20px;
-    }
-
-    :root {
-        --header-height: 78px;
-        /* 28px marquee + 50px nav */
     }
 
     .hero__founder-by,
@@ -2196,5 +2179,27 @@ body.nav-open .nav__mobile-inner {
     .hero__founder-handle {
         margin-top: 0;
         line-height: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn--treat {
+        font-size: 0.8rem;
+        padding: 10px 24px;
+    }
+
+    .chat-toggle {
+        width: 46px;
+        height: 46px;
+    }
+
+    .chat-toggle__icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    :root {
+        --header-height: 78px;
+        /* 28px marquee + 50px nav */
     }
 }
