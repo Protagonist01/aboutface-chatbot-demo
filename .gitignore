@@ -1,2 +1,15 @@
+# Dependencies
 node_modules/
+
+# Environment secrets
 .env
+
+# Logs
+*.log
+
+# Debug dumps
+git_*.txt
+
+# One-off dev scripts
+dl.mjs
+download_images.*
