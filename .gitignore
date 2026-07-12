@@ -13,3 +13,7 @@ git_*.txt
 # One-off dev scripts
 dl.mjs
 download_images.*
+
+# Unrelated / stray files
+ml/
+*.ipynb
