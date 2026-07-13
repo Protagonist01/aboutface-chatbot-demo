@@ -107,10 +107,31 @@ cp .env.example .env
 Open `.env` and fill in the values:
 ```env
 OPENAI_API_KEY=your-openai-api-key
+OPENROUTER_API_KEY=your-openrouter-api-key
+CHAT_MODEL=google/gemma-4-31b-it:free
 PINECONE_API_KEY=your-pinecone-api-key
 PINECONE_INDEX_NAME=about-face-kb
+MAX_MESSAGE_LENGTH=800
+IP_RATE_LIMIT_MAX_REQUESTS=8
+DAILY_GLOBAL_REQUEST_LIMIT=250
 PORT=3000
 ```
+
+`OPENROUTER_API_KEY` is used for chat generation when present. `OPENAI_API_KEY`
+is still required for query embeddings unless you replace the embedding pipeline,
+because Pinecone search depends on vectors generated with `text-embedding-3-small`.
+OpenRouter free model availability can change, so update `CHAT_MODEL` with any
+current `:free` model from OpenRouter if the default is unavailable.
+
+The public demo includes basic abuse controls:
+*   `MAX_MESSAGE_LENGTH`: rejects long prompts before any model call.
+*   `IP_RATE_LIMIT_MAX_REQUESTS` + `IP_RATE_LIMIT_WINDOW_MS`: caps bursts per IP.
+*   `DAILY_GLOBAL_REQUEST_LIMIT`: caps total daily chat requests per running server instance.
+*   `MAX_OUTPUT_TOKENS`: caps response size.
+
+For production-grade daily limits on Vercel/serverless, use a shared store such
+as Upstash Redis or Vercel KV. In-memory counters reset when a serverless
+instance restarts or when traffic is split across multiple instances.
 
 ### 4. Database Seeding
 To parse your knowledge base markdown file, generate vector embeddings, and populate your Pinecone Index, run the seeding script:

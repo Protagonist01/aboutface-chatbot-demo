@@ -8,6 +8,7 @@ import { Pinecone } from '@pinecone-database/pinecone';
 
 // ── Lazy-initialized clients ──────────────────────────────
 let openai = null;
+let openrouter = null;
 let pineconeIndex = null;
 
 function getOpenAI() {
@@ -16,6 +17,24 @@ function getOpenAI() {
         openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     }
     return openai;
+}
+
+function getChatClient() {
+    if (process.env.OPENROUTER_API_KEY) {
+        if (!openrouter) {
+            openrouter = new OpenAI({
+                apiKey: process.env.OPENROUTER_API_KEY,
+                baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+                defaultHeaders: {
+                    'HTTP-Referer': process.env.PUBLIC_SITE_URL || 'http://localhost:3000',
+                    'X-Title': process.env.APP_NAME || 'about-face chatbot demo',
+                },
+            });
+        }
+        return openrouter;
+    }
+
+    return getOpenAI();
 }
 
 function getPineconeIndex() {
@@ -29,7 +48,8 @@ function getPineconeIndex() {
 
 // ── Constants ─────────────────────────────────────────────
 const EMBEDDING_MODEL = 'text-embedding-3-small';
-const CHAT_MODEL = 'gpt-4o-mini';
+const CHAT_MODEL = process.env.CHAT_MODEL || (process.env.OPENROUTER_API_KEY ? 'google/gemma-4-31b-it:free' : 'gpt-4o-mini');
+const MAX_OUTPUT_TOKENS = Number(process.env.MAX_OUTPUT_TOKENS || 350);
 const TOP_K = 5;
 const NAMESPACE = 'knowledge-base';
 
@@ -112,11 +132,11 @@ async function generateResponse(query, context, history) {
 
     messages.push({ role: 'user', content: query });
 
-    const completion = await getOpenAI().chat.completions.create({
+    const completion = await getChatClient().chat.completions.create({
         model: CHAT_MODEL,
         messages,
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: MAX_OUTPUT_TOKENS,
         presence_penalty: 0.1,
         frequency_penalty: 0.1,
     });
