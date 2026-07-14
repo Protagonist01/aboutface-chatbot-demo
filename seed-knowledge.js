@@ -26,7 +26,18 @@ const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 
 async function ensureIndex() {
     try {
-        return await pinecone.describeIndex(INDEX_NAME);
+        const index = await pinecone.describeIndex(INDEX_NAME);
+        if (index.embed?.model !== EMBEDDING_MODEL) {
+            throw new Error(`Index ${INDEX_NAME} uses ${index.embed?.model}; expected ${EMBEDDING_MODEL}`);
+        }
+        if (index.embed?.fieldMap?.text !== 'search_text') {
+            console.log('updating integrated embedding field map to search_text...');
+            return pinecone.configureIndex({
+                name: INDEX_NAME,
+                embed: { fieldMap: { text: 'search_text' } },
+            });
+        }
+        return index;
     } catch (error) {
         const notFound = error.status === 404 || error.message.includes('404');
         if (!notFound) throw error;
@@ -39,7 +50,7 @@ async function ensureIndex() {
         region: 'us-east-1',
         embed: {
             model: EMBEDDING_MODEL,
-            fieldMap: { text: 'text' },
+            fieldMap: { text: 'search_text' },
         },
         waitUntilReady: true,
     });
@@ -67,11 +78,16 @@ async function main() {
     const index = pinecone.index({ host: indexModel.host });
     const namespace = index.namespace(NAMESPACE);
 
+    await namespace.deleteAll();
+    console.log(`cleared namespace "${NAMESPACE}"`);
+
     for (let start = 0; start < chunks.length; start += BATCH_SIZE) {
         const batch = chunks.slice(start, start + BATCH_SIZE).map((chunk, offset) => ({
             id: `chunk-${start + offset}`,
+            search_text: chunk.searchText,
             text: chunk.text,
             category: chunk.category,
+            title: chunk.title,
         }));
 
         await namespace.upsertRecords({ records: batch });

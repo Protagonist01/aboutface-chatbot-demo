@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed": "node seed-knowledge.js"
+    "seed": "node seed-knowledge.js",
+    "test": "node --test",
+    "evaluate": "node scripts/evaluate-retrieval.js"
   },
   "keywords": [
     "chatbot",

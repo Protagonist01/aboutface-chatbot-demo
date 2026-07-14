@@ -6,6 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const TOP_K = 5;
+const MAX_CHUNK_LENGTH = 1400;
 
 const CATEGORY_MAP = {
     'BRAND OVERVIEW': 'brand',
@@ -34,13 +35,23 @@ const CATEGORY_MAP = {
     'BRAND VOICE': 'brand',
 };
 
+const SEARCH_ALIAS_RULES = [
+    { pattern: /best-selling|fan-favorite|put about-face on the map/i, aliases: 'best seller best sellers bestselling most popular top product fan favorite' },
+    { pattern: /shipping|delivery|fulfillment|tracking/i, aliases: 'shipping delivery parcel package arrival postage order status' },
+    { pattern: /return|exchange|refund/i, aliases: 'return exchange refund send back changed my mind' },
+    { pattern: /vegan|animal-derived|cruelty-free|tested on animals/i, aliases: 'vegan cruelty free animal testing ethical makeup ingredients' },
+    { pattern: /shade|undertone|foundation|concealer/i, aliases: 'shade match skin tone color match complexion base makeup' },
+    { pattern: /where to buy|retail|ulta|store locator/i, aliases: 'where to buy shop store retailer near me stockist' },
+    { pattern: /price|pricing|cost|\$/i, aliases: 'price pricing cost how much' },
+];
+
 const STOP_WORDS = new Set([
     'a', 'an', 'and', 'are', 'about', 'can', 'do', 'does', 'for', 'from', 'how',
     'i', 'in', 'is', 'it', 'me', 'my', 'of', 'on', 'or', 'the', 'their', 'to',
     'what', 'when', 'where', 'which', 'with', 'you', 'your',
 ]);
 
-let indexedChunks = null;
+let localIndex = null;
 
 function normalize(text) {
     return text
@@ -66,6 +77,65 @@ function categoryFor(section) {
     return 'general';
 }
 
+function titleFor(text) {
+    const question = text.match(/\*\*Q:\s*(.+?)\*\*/)?.[1];
+    if (question) return question.trim();
+    return text.match(/^#{2,4}\s+(.+)$/m)?.[1]?.trim() || 'about-face information';
+}
+
+function aliasesFor(text) {
+    return SEARCH_ALIAS_RULES
+        .filter((rule) => rule.pattern.test(text))
+        .map((rule) => rule.aliases)
+        .join(' ');
+}
+
+function makeChunk(text, category) {
+    const trimmed = text.trim();
+    const title = titleFor(trimmed);
+    const aliases = aliasesFor(trimmed);
+    const searchText = [title, `category: ${category}`, aliases, trimmed]
+        .filter(Boolean)
+        .join('\n');
+
+    return { text: trimmed, category, title, searchText };
+}
+
+function splitQuestionAnswers(text, parentHeading) {
+    const entries = [];
+    const pattern = /\*\*Q:\s*(.+?)\*\*\s*\n([\s\S]*?)(?=\n\s*\*\*Q:|$)/g;
+
+    for (const match of text.matchAll(pattern)) {
+        const heading = parentHeading ? `${parentHeading}\n\n` : '';
+        entries.push(`${heading}**Q: ${match[1].trim()}**\n${match[2].trim()}`);
+    }
+
+    return entries;
+}
+
+function splitLongText(text) {
+    if (text.length <= MAX_CHUNK_LENGTH) return [text];
+
+    const heading = text.match(/^#{2,4}\s+.+$/m)?.[0] || '';
+    const body = heading ? text.replace(heading, '').trim() : text;
+    const paragraphs = body.split(/\n{2,}/).filter(Boolean);
+    const chunks = [];
+    let current = heading;
+
+    for (const paragraph of paragraphs) {
+        const candidate = [current, paragraph].filter(Boolean).join('\n\n');
+        if (candidate.length > MAX_CHUNK_LENGTH && current !== heading) {
+            chunks.push(current.trim());
+            current = [heading, paragraph].filter(Boolean).join('\n\n');
+        } else {
+            current = candidate;
+        }
+    }
+
+    if (current.trim()) chunks.push(current.trim());
+    return chunks;
+}
+
 export function chunkKnowledgeBase(markdown) {
     const chunks = [];
     const sections = markdown.split(/(?=^## \d+\.\s+)/m);
@@ -76,17 +146,23 @@ export function chunkKnowledgeBase(markdown) {
         const subsections = section.split(/(?=^###\s+)/m);
 
         for (const subsection of subsections) {
-            const text = subsection.trim();
-            if (text.length <= 50) continue;
+            const subsectionText = subsection.trim();
+            if (subsectionText.length <= 50) continue;
 
-            const parts = text.length > 2000
-                ? text.split(/(?=^####\s+)/m)
-                : [text];
+            const parentHeading = subsectionText.match(/^###\s+.+$/m)?.[0] || '';
+            const parts = subsectionText.split(/(?=^####\s+)/m);
 
             for (const part of parts) {
                 const trimmed = part.trim();
-                if (trimmed.length > 50) {
-                    chunks.push({ text: trimmed.slice(0, 2200), category });
+                if (trimmed.length <= 50) continue;
+
+                const questionAnswers = splitQuestionAnswers(trimmed, parentHeading);
+                const atomicParts = questionAnswers.length ? questionAnswers : splitLongText(trimmed);
+
+                for (const atomicPart of atomicParts) {
+                    if (atomicPart.trim().length > 50) {
+                        chunks.push(makeChunk(atomicPart, category));
+                    }
                 }
             }
         }
@@ -96,14 +172,14 @@ export function chunkKnowledgeBase(markdown) {
 }
 
 function loadIndex() {
-    if (indexedChunks) return indexedChunks;
+    if (localIndex) return localIndex;
 
     const kbPath = path.join(__dirname, 'about-face-knowledge-base.md');
     const chunks = chunkKnowledgeBase(fs.readFileSync(kbPath, 'utf8'));
     const documentFrequency = new Map();
 
-    indexedChunks = chunks.map((chunk) => {
-        const terms = tokenize(chunk.text);
+    const indexedChunks = chunks.map((chunk) => {
+        const terms = tokenize(chunk.searchText);
         const termCounts = new Map();
         for (const term of terms) {
             termCounts.set(term, (termCounts.get(term) || 0) + 1);
@@ -111,12 +187,15 @@ function loadIndex() {
         for (const term of termCounts.keys()) {
             documentFrequency.set(term, (documentFrequency.get(term) || 0) + 1);
         }
-        return { ...chunk, normalized: normalize(chunk.text), terms, termCounts };
+        return { ...chunk, normalized: normalize(chunk.searchText), terms, termCounts };
     });
 
-    indexedChunks.documentFrequency = documentFrequency;
-    indexedChunks.averageLength = indexedChunks.reduce((sum, chunk) => sum + chunk.terms.length, 0) / indexedChunks.length;
-    return indexedChunks;
+    localIndex = {
+        chunks: indexedChunks,
+        documentFrequency,
+        averageLength: indexedChunks.reduce((sum, chunk) => sum + chunk.terms.length, 0) / indexedChunks.length,
+    };
+    return localIndex;
 }
 
 function inferCategory(queryTerms) {
@@ -135,9 +214,9 @@ export function searchLocalKnowledge(query, topK = TOP_K) {
     const queryTerms = [...new Set(tokenize(query))];
     const normalizedQuery = normalize(query);
     const category = inferCategory(queryTerms);
-    const totalDocuments = index.length;
+    const totalDocuments = index.chunks.length;
 
-    return index
+    return index.chunks
         .map((chunk) => {
             let score = normalizedQuery.length > 3 && chunk.normalized.includes(normalizedQuery) ? 5 : 0;
 
@@ -160,6 +239,7 @@ export function searchLocalKnowledge(query, topK = TOP_K) {
         .map((chunk) => ({
             text: chunk.text,
             category: chunk.category,
+            title: chunk.title,
             score: Math.min(0.99, chunk.rawScore / (chunk.rawScore + 4)),
         }));
 }
