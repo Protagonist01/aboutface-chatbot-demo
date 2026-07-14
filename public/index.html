@@ -231,17 +231,22 @@
         </div>
       </div>
 
-      <form class="chat-panel__input" id="chatForm">
-        <input type="text" id="chatInput" class="chat-panel__input-field"
-          placeholder="ask me anything about about-face..." autocomplete="off">
-        <button type="submit" class="chat-panel__send" id="chatSend" aria-label="Send message">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
-          </svg>
-        </button>
-      </form>
+      <div class="chat-panel__composer">
+        <p class="chat-panel__latency-note" role="note">
+          free ai demo - replies may take up to a minute when demand is high
+        </p>
+        <form class="chat-panel__input" id="chatForm">
+          <input type="text" id="chatInput" class="chat-panel__input-field"
+            placeholder="ask me anything about about-face..." autocomplete="off">
+          <button type="submit" class="chat-panel__send" id="chatSend" aria-label="Send message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 
