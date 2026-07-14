@@ -66,7 +66,7 @@ function categoryFor(section) {
     return 'general';
 }
 
-function chunkKnowledgeBase(markdown) {
+export function chunkKnowledgeBase(markdown) {
     const chunks = [];
     const sections = markdown.split(/(?=^## \d+\.\s+)/m);
 

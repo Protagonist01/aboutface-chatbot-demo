@@ -21,10 +21,10 @@ The chatbot interface is styled according to the about-face brand guidelines:
 ### Backend & RAG Pipeline
 *   **Runtime**: Node.js (ES Modules, `"type": "module"`)
 *   **API Framework**: Express
-*   **Retrieval**: Local ranked search by default; Pinecone is optional
-*   **LLM Provider**: OpenRouter or OpenAI
+*   **Retrieval**: Pinecone semantic vector search with local fallback
+*   **LLM Provider**: OpenRouter
     *   **Chat Generation**: `openrouter/free` by default with an OpenRouter key
-    *   **Optional embeddings**: `text-embedding-3-small` (512 dimensions) for Pinecone mode
+    *   **Embeddings**: Pinecone integrated inference with `multilingual-e5-large`
 
 ### Frontend
 *   **Core**: Vanilla HTML5 / JavaScript (ES6)
@@ -41,18 +41,18 @@ The chatbot utilizes a standard RAG pipeline to ensure that all generated answer
 
 ```mermaid
 graph TD
-    A[User Input] --> B[Local Ranked Search]
-    B --> C[Bundled Knowledge Base]
+    A[User Input] --> B[Pinecone Integrated Embedding]
+    B --> C[Semantic Vector Search]
     C -->|Top 5 Chunks| D[Context Construction]
     D --> E[System Prompt + Context + Chat History]
     E --> F[OpenRouter Chat Completion]
     F -->|On-brand Lowercase Response| G[User Interface]
 ```
 
-1.  **Ingestion & Seeding (`seed-knowledge.js`)**: 
-    Reads the markdown-formatted [about-face-knowledge-base.md](./about-face-knowledge-base.md), splits it intelligently by headers into contextually cohesive chunks, assigns categories (e.g., `products`, `shipping`, `tips`), requests OpenAI embeddings, and upserts them to Pinecone.
-2.  **Retrieval (`knowledge-search.js`)**:
-    Ranks the bundled knowledge-base sections locally and selects the five most relevant chunks. Optional Pinecone mode retains the original vector-search pipeline.
+1.  **Ingestion & Seeding (`seed-knowledge.js`)**:
+    Reads [about-face-knowledge-base.md](./about-face-knowledge-base.md), splits it into cohesive chunks, and sends the text records to Pinecone. Pinecone embeds and stores them using `multilingual-e5-large`.
+2.  **Retrieval (`rag-engine.js`)**:
+    Sends each question to the integrated Pinecone index and selects the five most semantically relevant chunks. `knowledge-search.js` provides a local fallback if Pinecone is unavailable.
 3.  **Generation**:
     Injects context and recent conversation history (last 6 turns) into the custom system prompt configured with the brand's lowercase, welcoming persona.
 
@@ -71,7 +71,7 @@ about-face-chatbot/
 ├── download_images.js          # Helper script for fetching demo media assets
 ├── download_images.ps1         # PowerShell variant of the image downloader
 ├── package.json                # Project dependencies and run scripts
-├── knowledge-search.js         # Local knowledge-base ranking
+├── knowledge-search.js         # Shared chunking and local search fallback
 ├── rag-engine.js               # Retrieval selection and chat generation
 ├── seed-knowledge.js           # Knowledge base parsing, chunking, and database seeding script
 ├── server.js                   # Express application serving frontend & API endpoint
@@ -88,7 +88,7 @@ about-face-chatbot/
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-Ensure you have [Node.js](https://nodejs.org/) installed (v18+ recommended). You will also need an **OpenRouter API key**. OpenAI and Pinecone are only required for optional Pinecone retrieval mode.
+Ensure you have [Node.js](https://nodejs.org/) installed (v18+ recommended). You will also need **OpenRouter** and **Pinecone** API keys. No OpenAI key is required.
 
 ### 2. Installation
 Clone the repository and install dependencies:
@@ -107,18 +107,19 @@ Open `.env` and fill in the values:
 ```env
 OPENROUTER_API_KEY=your-openrouter-api-key
 CHAT_MODEL=openrouter/free
-RETRIEVAL_MODE=local
+PINECONE_API_KEY=your-pinecone-api-key
+PINECONE_INDEX_NAME=about-face-kb
+PINECONE_EMBEDDING_MODEL=multilingual-e5-large
 MAX_MESSAGE_LENGTH=800
 IP_RATE_LIMIT_MAX_REQUESTS=8
 DAILY_GLOBAL_REQUEST_LIMIT=250
 PORT=3000
 ```
 
-`OPENROUTER_API_KEY` is the only provider key required in the default local
-retrieval mode. `openrouter/free` automatically selects an available free chat
-model. To use the original Pinecone vector search instead, set
-`RETRIEVAL_MODE=pinecone` and configure `OPENAI_API_KEY`, `PINECONE_API_KEY`, and
-`PINECONE_INDEX_NAME`.
+`openrouter/free` automatically selects an available free chat model. Pinecone
+integrated inference embeds both the knowledge chunks and incoming questions,
+so vector search does not consume OpenAI credits. If Pinecone is temporarily
+unavailable, the app falls back to local ranked search.
 
 The public demo includes basic abuse controls:
 *   `MAX_MESSAGE_LENGTH`: rejects long prompts before any model call.
@@ -130,8 +131,8 @@ For production-grade daily limits on Vercel/serverless, use a shared store such
 as Upstash Redis or Vercel KV. In-memory counters reset when a serverless
 instance restarts or when traffic is split across multiple instances.
 
-### 4. Optional Pinecone Seeding
-When using `RETRIEVAL_MODE=pinecone`, parse the knowledge base, generate vector embeddings, and populate your Pinecone index with:
+### 4. Vector Index Seeding
+Create the integrated Pinecone index and populate it with the knowledge base:
 ```bash
 npm run seed
 ```
@@ -184,7 +185,7 @@ Simple check for service status and uptime.
 The project is optimized for deployment on [Vercel](https://vercel.com/):
 
 1.  Connect your repository to Vercel.
-2.  Configure `OPENROUTER_API_KEY`, `CHAT_MODEL=openrouter/free`, and `RETRIEVAL_MODE=local` in the Vercel Dashboard.
+2.  Configure `OPENROUTER_API_KEY`, `CHAT_MODEL=openrouter/free`, `PINECONE_API_KEY`, `PINECONE_INDEX_NAME=about-face-kb`, and `PINECONE_EMBEDDING_MODEL=multilingual-e5-large` in the Vercel Dashboard.
 3.  Deploy! Vercel will build the frontend assets and host the Express routes serverlessly via the `/api/index.js` bridge.
 
 ---

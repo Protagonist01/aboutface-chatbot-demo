@@ -47,7 +47,6 @@ function getPineconeIndex() {
 }
 
 // ── Constants ─────────────────────────────────────────────
-const EMBEDDING_MODEL = 'text-embedding-3-small';
 const LEGACY_FREE_MODEL = 'google/gemma-4-31b-it:free';
 const configuredChatModel = process.env.CHAT_MODEL;
 const CHAT_MODEL = process.env.OPENROUTER_API_KEY
@@ -56,7 +55,6 @@ const CHAT_MODEL = process.env.OPENROUTER_API_KEY
 const MAX_OUTPUT_TOKENS = Number(process.env.MAX_OUTPUT_TOKENS || 350);
 const TOP_K = 5;
 const NAMESPACE = 'knowledge-base';
-const RETRIEVAL_MODE = process.env.RETRIEVAL_MODE || 'local';
 
 // ── System Prompt ─────────────────────────────────────────
 const SYSTEM_PROMPT = `You are "the muse" — the official AI beauty alter ego for about-face, the cosmetics brand founded by Halsey. You are NOT a generic chatbot; you are a creative, bold companion who helps people express themselves through makeup.
@@ -87,41 +85,34 @@ BRAND FACTS TO REMEMBER:
 - Available at aboutface.com and Ulta Beauty
 - Free US shipping on orders over $45`;
 
-// ── Embed Query ───────────────────────────────────────────
-async function embedQuery(text) {
-    const response = await getOpenAI().embeddings.create({
-        model: EMBEDDING_MODEL,
-        input: text,
-        dimensions: 512,
-    });
-    return response.data[0].embedding;
-}
-
 // ── Search Pinecone ───────────────────────────────────────
-async function searchKnowledge(queryEmbedding) {
-    const results = await getPineconeIndex().namespace(NAMESPACE).query({
-        vector: queryEmbedding,
-        topK: TOP_K,
-        includeMetadata: true,
+async function searchKnowledge(query) {
+    const results = await getPineconeIndex().namespace(NAMESPACE).searchRecords({
+        query: {
+            inputs: { text: query },
+            topK: TOP_K,
+        },
+        fields: ['text', 'category'],
     });
 
-    return results.matches
-        .filter((match) => match.score >= 0.3)
-        .map((match) => ({
-            text: match.metadata.text,
-            category: match.metadata.category,
-            score: match.score,
+    return results.result.hits
+        .map((hit) => ({
+            text: hit.fields.text,
+            category: hit.fields.category,
+            score: hit._score,
         }));
 }
 
 async function retrieveContext(query) {
-    if (RETRIEVAL_MODE === 'pinecone') {
-        const queryEmbedding = await embedQuery(query);
-        return searchKnowledge(queryEmbedding);
+    try {
+        const context = await searchKnowledge(query);
+        console.log('[RAG] Retrieval: Pinecone vector search');
+        return context;
+    } catch (error) {
+        console.warn(`[RAG] Vector search unavailable; using local fallback: ${error.message}`);
+        const { searchLocalKnowledge } = await import('./knowledge-search.js');
+        return searchLocalKnowledge(query, TOP_K);
     }
-
-    const { searchLocalKnowledge } = await import('./knowledge-search.js');
-    return searchLocalKnowledge(query, TOP_K);
 }
 
 // ── Generate Response ─────────────────────────────────────
