@@ -122,9 +122,12 @@ app.post('/api/chat', enforceUsageLimits, async (req, res) => {
         res.json({ reply });
     } catch (error) {
         console.error('[/api/chat] Error:', error.message);
-        res.status(500).json({
-            error: 'Internal server error',
-            reply: "sorry, i'm having trouble right now. please try again in a moment. 💚",
+        const freeProviderBusy = error.status === 429 || error.status === 503;
+        res.status(freeProviderBusy ? 503 : 500).json({
+            error: freeProviderBusy ? 'AI provider busy' : 'Internal server error',
+            reply: freeProviderBusy
+                ? "the free ai service is busy right now. please try again in a minute. 💚"
+                : "sorry, i'm having trouble right now. please try again in a moment. 💚",
         });
     }
 });

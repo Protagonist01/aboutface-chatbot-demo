@@ -48,10 +48,15 @@ function getPineconeIndex() {
 
 // ── Constants ─────────────────────────────────────────────
 const EMBEDDING_MODEL = 'text-embedding-3-small';
-const CHAT_MODEL = process.env.CHAT_MODEL || (process.env.OPENROUTER_API_KEY ? 'google/gemma-4-31b-it:free' : 'gpt-4o-mini');
+const LEGACY_FREE_MODEL = 'google/gemma-4-31b-it:free';
+const configuredChatModel = process.env.CHAT_MODEL;
+const CHAT_MODEL = process.env.OPENROUTER_API_KEY
+    ? (!configuredChatModel || configuredChatModel === LEGACY_FREE_MODEL ? 'openrouter/free' : configuredChatModel)
+    : (configuredChatModel || 'gpt-4o-mini');
 const MAX_OUTPUT_TOKENS = Number(process.env.MAX_OUTPUT_TOKENS || 350);
 const TOP_K = 5;
 const NAMESPACE = 'knowledge-base';
+const RETRIEVAL_MODE = process.env.RETRIEVAL_MODE || 'local';
 
 // ── System Prompt ─────────────────────────────────────────
 const SYSTEM_PROMPT = `You are "the muse" — the official AI beauty alter ego for about-face, the cosmetics brand founded by Halsey. You are NOT a generic chatbot; you are a creative, bold companion who helps people express themselves through makeup.
@@ -80,7 +85,7 @@ BRAND FACTS TO REMEMBER:
 - Clean beauty — no parabens, phthalates, gluten, synthetic fragrances
 - Founded January 25, 2021
 - Available at aboutface.com and Ulta Beauty
-- Free US shipping on orders over $30`;
+- Free US shipping on orders over $45`;
 
 // ── Embed Query ───────────────────────────────────────────
 async function embedQuery(text) {
@@ -109,6 +114,16 @@ async function searchKnowledge(queryEmbedding) {
         }));
 }
 
+async function retrieveContext(query) {
+    if (RETRIEVAL_MODE === 'pinecone') {
+        const queryEmbedding = await embedQuery(query);
+        return searchKnowledge(queryEmbedding);
+    }
+
+    const { searchLocalKnowledge } = await import('./knowledge-search.js');
+    return searchLocalKnowledge(query, TOP_K);
+}
+
 // ── Generate Response ─────────────────────────────────────
 async function generateResponse(query, context, history) {
     const contextStr = context
@@ -132,14 +147,31 @@ async function generateResponse(query, context, history) {
 
     messages.push({ role: 'user', content: query });
 
-    const completion = await getChatClient().chat.completions.create({
+    const request = {
         model: CHAT_MODEL,
         messages,
         temperature: 0.7,
         max_tokens: MAX_OUTPUT_TOKENS,
         presence_penalty: 0.1,
         frequency_penalty: 0.1,
-    });
+    };
+
+    let completion;
+    try {
+        completion = await getChatClient().chat.completions.create(request);
+    } catch (error) {
+        const canUseFreeFallback = process.env.OPENROUTER_API_KEY
+            && CHAT_MODEL !== 'openrouter/free'
+            && [404, 429, 502, 503].includes(error.status);
+
+        if (!canUseFreeFallback) throw error;
+
+        console.warn(`[RAG] ${CHAT_MODEL} unavailable (${error.status}); retrying with openrouter/free`);
+        completion = await getChatClient().chat.completions.create({
+            ...request,
+            model: 'openrouter/free',
+        });
+    }
 
     return completion.choices[0].message.content;
 }
@@ -148,8 +180,7 @@ async function generateResponse(query, context, history) {
 export async function handleChat(message, history) {
     console.log(`[RAG] Query: "${message}"`);
 
-    const queryEmbedding = await embedQuery(message);
-    const context = await searchKnowledge(queryEmbedding);
+    const context = await retrieveContext(message);
     console.log(`[RAG] Found ${context.length} relevant chunks`);
 
     const reply = await generateResponse(message, context, history);

@@ -21,10 +21,10 @@ The chatbot interface is styled according to the about-face brand guidelines:
 ### Backend & RAG Pipeline
 *   **Runtime**: Node.js (ES Modules, `"type": "module"`)
 *   **API Framework**: Express
-*   **Vector Database**: Pinecone
-*   **LLM Provider**: OpenAI API
-    *   **Embeddings**: `text-embedding-3-small` (512 dimensions)
-    *   **Chat Generation**: `gpt-4o-mini` (temperature: `0.7` for creative but grounded answers)
+*   **Retrieval**: Local ranked search by default; Pinecone is optional
+*   **LLM Provider**: OpenRouter or OpenAI
+    *   **Chat Generation**: `openrouter/free` by default with an OpenRouter key
+    *   **Optional embeddings**: `text-embedding-3-small` (512 dimensions) for Pinecone mode
 
 ### Frontend
 *   **Core**: Vanilla HTML5 / JavaScript (ES6)
@@ -41,18 +41,18 @@ The chatbot utilizes a standard RAG pipeline to ensure that all generated answer
 
 ```mermaid
 graph TD
-    A[User Input] --> B[openai.embeddings.create]
-    B -->|512-dim Vector| C[Pinecone Index Query]
-    C -->|Top 5 Chunks, Score >= 0.3| D[Context Construction]
+    A[User Input] --> B[Local Ranked Search]
+    B --> C[Bundled Knowledge Base]
+    C -->|Top 5 Chunks| D[Context Construction]
     D --> E[System Prompt + Context + Chat History]
-    E --> F[openai.chat.completions.create]
+    E --> F[OpenRouter Chat Completion]
     F -->|On-brand Lowercase Response| G[User Interface]
 ```
 
 1.  **Ingestion & Seeding (`seed-knowledge.js`)**: 
     Reads the markdown-formatted [about-face-knowledge-base.md](./about-face-knowledge-base.md), splits it intelligently by headers into contextually cohesive chunks, assigns categories (e.g., `products`, `shipping`, `tips`), requests OpenAI embeddings, and upserts them to Pinecone.
-2.  **Retrieval (`rag-engine.js`)**: 
-    Translates user query into a vector, queries the Pinecone vector index (filtered by the `knowledge-base` namespace), filters out low-relevance results (cutoff `score < 0.3`), and builds a context prompt.
+2.  **Retrieval (`knowledge-search.js`)**:
+    Ranks the bundled knowledge-base sections locally and selects the five most relevant chunks. Optional Pinecone mode retains the original vector-search pipeline.
 3.  **Generation**:
     Injects context and recent conversation history (last 6 turns) into the custom system prompt configured with the brand's lowercase, welcoming persona.
 
@@ -71,7 +71,8 @@ about-face-chatbot/
 ├── download_images.js          # Helper script for fetching demo media assets
 ├── download_images.ps1         # PowerShell variant of the image downloader
 ├── package.json                # Project dependencies and run scripts
-├── rag-engine.js               # Embedding, Pinecone querying, and OpenAI generation logic
+├── knowledge-search.js         # Local knowledge-base ranking
+├── rag-engine.js               # Retrieval selection and chat generation
 ├── seed-knowledge.js           # Knowledge base parsing, chunking, and database seeding script
 ├── server.js                   # Express application serving frontend & API endpoint
 ├── vercel.json                 # Vercel rewrite configuration
@@ -87,9 +88,7 @@ about-face-chatbot/
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-Ensure you have [Node.js](https://nodejs.org/) installed (v18+ recommended). You will also need:
-*   An **OpenAI API Key**
-*   A **Pinecone API Key** and a Pinecone Index (with 512 dimensions, cosine similarity metric)
+Ensure you have [Node.js](https://nodejs.org/) installed (v18+ recommended). You will also need an **OpenRouter API key**. OpenAI and Pinecone are only required for optional Pinecone retrieval mode.
 
 ### 2. Installation
 Clone the repository and install dependencies:
@@ -106,22 +105,20 @@ cp .env.example .env
 ```
 Open `.env` and fill in the values:
 ```env
-OPENAI_API_KEY=your-openai-api-key
 OPENROUTER_API_KEY=your-openrouter-api-key
-CHAT_MODEL=google/gemma-4-31b-it:free
-PINECONE_API_KEY=your-pinecone-api-key
-PINECONE_INDEX_NAME=about-face-kb
+CHAT_MODEL=openrouter/free
+RETRIEVAL_MODE=local
 MAX_MESSAGE_LENGTH=800
 IP_RATE_LIMIT_MAX_REQUESTS=8
 DAILY_GLOBAL_REQUEST_LIMIT=250
 PORT=3000
 ```
 
-`OPENROUTER_API_KEY` is used for chat generation when present. `OPENAI_API_KEY`
-is still required for query embeddings unless you replace the embedding pipeline,
-because Pinecone search depends on vectors generated with `text-embedding-3-small`.
-OpenRouter free model availability can change, so update `CHAT_MODEL` with any
-current `:free` model from OpenRouter if the default is unavailable.
+`OPENROUTER_API_KEY` is the only provider key required in the default local
+retrieval mode. `openrouter/free` automatically selects an available free chat
+model. To use the original Pinecone vector search instead, set
+`RETRIEVAL_MODE=pinecone` and configure `OPENAI_API_KEY`, `PINECONE_API_KEY`, and
+`PINECONE_INDEX_NAME`.
 
 The public demo includes basic abuse controls:
 *   `MAX_MESSAGE_LENGTH`: rejects long prompts before any model call.
@@ -133,8 +130,8 @@ For production-grade daily limits on Vercel/serverless, use a shared store such
 as Upstash Redis or Vercel KV. In-memory counters reset when a serverless
 instance restarts or when traffic is split across multiple instances.
 
-### 4. Database Seeding
-To parse your knowledge base markdown file, generate vector embeddings, and populate your Pinecone Index, run the seeding script:
+### 4. Optional Pinecone Seeding
+When using `RETRIEVAL_MODE=pinecone`, parse the knowledge base, generate vector embeddings, and populate your Pinecone index with:
 ```bash
 npm run seed
 ```
@@ -187,7 +184,7 @@ Simple check for service status and uptime.
 The project is optimized for deployment on [Vercel](https://vercel.com/):
 
 1.  Connect your repository to Vercel.
-2.  Configure your environment variables (`OPENAI_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`) in the Vercel Dashboard.
+2.  Configure `OPENROUTER_API_KEY`, `CHAT_MODEL=openrouter/free`, and `RETRIEVAL_MODE=local` in the Vercel Dashboard.
 3.  Deploy! Vercel will build the frontend assets and host the Express routes serverlessly via the `/api/index.js` bridge.
 
 ---

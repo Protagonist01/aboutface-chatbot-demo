@@ -996,7 +996,7 @@ A: Direct from aboutface.com, at Ulta Beauty stores and online, on Amazon, and t
 A: Currently, direct international shipping is suspended. International customers can shop through Beauty Bay, Cult Beauty, and other regional retailers.
 
 **Q: What is the shipping cost?**
-A: Free U.S. shipping on orders over $30 (threshold may be $45 - verify current policy).
+A: Free U.S. shipping on orders over $45.
 
 **Q: How long does shipping take?**
 A: Orders typically arrive within 5-7 business days after fulfillment (domestic U.S.).

@@ -109,8 +109,14 @@
     }
 
     function formatMessageText(text) {
-        // Convert markdown-like formatting
-        return text
+        const escaped = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        return escaped
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\n/g, '<br>')
             .replace(/•/g, '&#8226;');
@@ -214,12 +220,14 @@
             });
 
             hideTyping();
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
+                const error = new Error(`Server error: ${response.status}`);
+                error.userMessage = data.reply;
+                throw error;
             }
 
-            const data = await response.json();
             const botReply = data.reply || "sorry, i couldn't process that. please try again.";
 
             addBotMessage(botReply);
@@ -231,9 +239,7 @@
         } catch (error) {
             hideTyping();
             console.error('Chat error:', error);
-            addBotMessage(
-                "oops, something went wrong on my end. please try again in a moment. 💚"
-            );
+            addBotMessage(error.userMessage || "oops, something went wrong on my end. please try again in a moment. 💚");
             showSuggestions(DEFAULT_SUGGESTIONS);
         }
 
