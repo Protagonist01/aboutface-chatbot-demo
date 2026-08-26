@@ -1706,6 +1706,12 @@ body.nav-open .nav__mobile-inner {
     gap: var(--space-sm);
 }
 
+.chat-panel__header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
 .chat-panel__avatar {
     width: 36px;
     height: 36px;
@@ -1755,6 +1761,20 @@ body.nav-open .nav__mobile-inner {
     justify-content: center;
     color: var(--text-muted);
     transition: all var(--transition-fast);
+}
+
+.chat-panel__header-actions .theme-toggle {
+    width: 32px;
+    height: 32px;
+    margin-left: 0;
+    color: var(--text-muted);
+    border-color: transparent;
+}
+
+.chat-panel__header-actions .theme-toggle:hover {
+    color: var(--neon);
+    border-color: var(--neon);
+    box-shadow: 0 0 12px var(--neon-glow);
 }
 
 .chat-panel__close svg {

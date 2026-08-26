@@ -17,3 +17,5 @@ download_images.*
 # Unrelated / stray files
 ml/
 *.ipynb
+.playwright-cli/
+output/
